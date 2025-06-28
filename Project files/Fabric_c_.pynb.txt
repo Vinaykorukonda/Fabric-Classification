@@ -160,3 +160,56 @@ model.save('Fabric_C_Model.keras')
 
 
 ---------------------------------------------END-------------------------------------------------------------------
+
+VS code
+
+import os
+import keras
+from keras.models import load_model
+import streamlit as st 
+import tensorflow as tf
+import numpy as np
+
+# Set page title
+st.header(' Fabric Classification Model')
+
+# Make sure upload directory exists
+UPLOAD_DIR = 'upload'
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# Corrected variable name: 'fabric_names' instead of 'fabric_name'
+fabric_names = ['cotton', 'denim', 'nylon', 'polyester', 'silk']
+
+# Load model safely
+MODEL_PATH = 'Fabric_C_Model.keras'
+try:
+    model = load_model(MODEL_PATH)
+except Exception as e:
+    st.error(f"Failed to load model: {e}")
+    st.stop()
+
+# Function to classify uploaded image
+def classify_pictures(image_path):
+    input_image = tf.keras.utils.load_img(image_path, target_size=(180, 180))
+    input_image_array = tf.keras.utils.img_to_array(input_image)
+    input_image_exp_dim = tf.expand_dims(input_image_array, 0)  # Shape: (1, 180, 180, 3)
+
+    predictions = model.predict(input_image_exp_dim)
+    result = tf.nn.softmax(predictions[0])
+    outcome = f"🌼 The image most likely belongs to **{fabric_names[np.argmax(result)]}** with a confidence of **{np.max(result) * 100:.2f}%**."
+    return outcome
+
+# Streamlit uploader
+uploaded_file = st.file_uploader('📁 Upload an image', type=['jpg', 'jpeg', 'png'])
+if uploaded_file is not None:
+    # Save the uploaded file
+    saved_path = os.path.join(UPLOAD_DIR, uploaded_file.name)
+    with open(saved_path, 'wb') as f:
+        f.write(uploaded_file.getbuffer())
+
+    # Display uploaded image
+    st.image(uploaded_file, width=200)
+
+    # Classify and display result
+    prediction = classify_pictures(saved_path)
+    st.markdown(prediction)
